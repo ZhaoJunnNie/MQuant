@@ -9,8 +9,8 @@
 [English](/README.md) | 简体中文 | [日本語](/docs/ja/README_ja.md)
 
 <a href="https://rank.opencompass.org.cn/leaderboard-multimodal">🏆 OpenCompass 排行榜 </a> •
-<a href="#-datasets-models-and-evaluation-results">📊 数据集和模型 </a> •
 <a href="#%EF%B8%8F-quickstart">🏗️ 快速开始 </a> •
+<a href="#-datasets-models-and-evaluation-results">📊 数据集和模型 </a> •
 <a href="#%EF%B8%8F-development-guide">🛠️ 开发指南 </a> •
 <a href="#-the-goal-of-vlmevalkit">🎯 我们的目标 </a> •
 <a href="#%EF%B8%8F-citation">🖊️ 引用 </a>
@@ -24,93 +24,31 @@
 **VLMEvalKit** (python 包名为 **vlmeval**) 是一款专为大型视觉语言模型 (Large Vision-Language Models， LVLMs) 评测而设计的开源工具包。该工具支持在各种基准测试上对大型视觉语言模型进行**一键评估**，无需进行繁重的数据准备工作，让评估过程更加简便。在 VLMEvalKit 中，我们对所有大型视觉语言模型生成的结果进行评测，并提供基于**精确匹配**与基于 **LLM 的答案提取**两种评测结果。
 
 ## 🆕 更新
-- **[2024-08-29]** 支持了 [**PLLaVA**](https://arxiv.org/abs/2404.16994) 这一视频理解大模型系列（包含7B/13B/34B）🔥🔥🔥
-- **[2024-08-29]** 支持了 [**GMAI-MMBench**](https://huggingface.co/papers/2408.03361), 感谢 [**TousenKaname**](https://github.com/TousenKaname)。参考: GPT-4o-MINI 达到 42.2% 的平均准确率 🔥🔥🔥
-- **[2024-08-29]** 支持了 [**MUIRBench**](https://muirbench.github.io), 感谢 **amitbcp**。参考: GPT-4o-MINI 达到 64.6% 的平均准确率 🔥🔥🔥
-- **[2024-08-28]** 支持了 [**VideoChat2-HD**](https://huggingface.co/OpenGVLab/VideoChat2_HD_stage4_Mistral_7B)  🔥🔥🔥
-- **[2024-08-25]** 支持了 [**MVBench**](https://github.com/OpenGVLab/Ask-Anything/blob/main/video_chat2/MVBENCH.md) 评测集的 [**视频**](https://huggingface.co/datasets/OpenGVLab/MVBench/tree/video) 版本 🔥🔥🔥
-- **[2024-08-25]** 支持了 [**Video-ChatGPT**](https://github.com/mbzuai-oryx/Video-ChatGPT), [**Chat-UniVi**](https://github.com/PKU-YuanGroup/Chat-UniVi) 和 [**LLaMA-VID**](https://github.com/dvlab-research/LLaMA-VID) 三个视频理解大模型, 感谢 [**Xiangyu Zhao**](https://github.com/PhoenixZ810)🔥🔥🔥
-- **[2024-08-20]** 优化了 [**MMMB 和 Multilingual MMBench**](https://arxiv.org/abs/2406.02539) 的测试流程, 现在你可以使用数据集名 `MMMB` 和 `MTL_MMBench_DEV` 一次性得到 6 种语言上的评测结果
-- **[2024-08-19]** 支持了 [**Llama-3-MixSenseV1_1**](https://huggingface.co/Zero-Vision/Llama-3-MixSenseV1_1), 感谢 **Zero-Vision** 🔥🔥🔥
-- **[2024-08-12]** 支持了 [**MMMB 和 Multilingual MMBench**](https://arxiv.org/abs/2406.02539), 感谢 [**Hai-Long Sun**](https://github.com/sun-hailong)🔥🔥🔥
-- **[2024-08-09]** 支持了 [**Hunyuan-Vision**](https://cloud.tencent.com/document/product/1729)，评测结果将很快更新🔥🔥🔥
-- **[2024-08-08]** 创建了 HuggingFace 数据集 [**OpenVLMRecords**](https://huggingface.co/datasets/VLMEval/OpenVLMRecords) 用以维护全部原始评测记录。这个仓库提供了题目级的所有原始模型回答🔥🔥🔥
+
+- **[2025-04-29]** 优化 `torchrun` 启动逻辑：目前 `torchrun` 启动时，若进程数为 M，机器 GPU 卡数为 N，将会自动调整每个进程分配的 GPU 数量为 `N // M`。目前此分配方式适用于 `transformers`, `lmdeploy` 推理后端，`vllm` 推理后端仅支持使用 python 启动 🔥🔥🔥
+- **[2025-02-20]** 支持新模型：**InternVL2.5 series, QwenVL2.5 series, QVQ-72B, Doubao-VL, Janus-Pro-7B, MiniCPM-o-2.6, InternVL2-MPO, LLaVA-CoT, Hunyuan-Standard-Vision, Ovis2, Valley, SAIL-VL, Ross, Long-VITA, EMU3, SmolVLM**。支持新基准：**MMMU-Pro, WeMath, 3DSRBench, LogicVista, VL-RewardBench, CC-OCR, CG-Bench, CMMMU, WorldSense**。请参考[**VLMEvalKit Features**](https://aicarrier.feishu.cn/wiki/Qp7wwSzQ9iK1Y6kNUJVcr6zTnPe?table=tblsdEpLieDoCxtb)以获取更多信息。感谢社区的各位贡献者 🔥🔥🔥
+- **[2024-11-21]** 集成了一个新的配置系统，以实现更灵活的评估设置。查看[文档](/docs/zh-CN/ConfigSystem.md)或运行`python run.py --help`了解更多详情 🔥🔥🔥
+- **[2024-11-21]** 支持 **[QSpatial](https://andrewliao11.github.io/spatial_prompt/)**，一个用于定量空间推理的多模态基准（例如，确定大小/距离），感谢 **[andrewliao11](https://github.com/andrewliao11)** 提供官方支持 🔥🔥🔥
+- **[2024-11-21]** 支持 **[MM-Math](https://github.com/kge-sun/mm-math)**，一个包含约6K初中多模态推理数学问题的新多模态数学基准。GPT-4o-20240806在该基准上达到了22.5%的准确率 🔥🔥🔥
+- **[2024-11-16]** 支持 **[OlympiadBench](https://github.com/OpenBMB/OlympiadBench)**，一个多模态基准，包含奥林匹克级别的数学和物理问题 🔥🔥🔥
+- **[2024-11-16]** 支持 **[WildVision](https://huggingface.co/datasets/WildVision/wildvision-bench)**，一个基于多模态竞技场数据的主观多模态基准 🔥🔥🔥
+- **[2024-11-13]** 支持 **[MIA-Bench](https://arxiv.org/abs/2407.01509)**，一个多模态指令跟随基准 🔥🔥🔥
+- **[2024-11-08]** 支持 **[Aria](https://arxiv.org/abs/2410.05993)**，一个多模态原生 MoE 模型，感谢 **[teowu](https://github.com/teowu)** 🔥🔥🔥
+- **[2024-11-04]** 支持 **[WorldMedQA-V](https://www.arxiv.org/abs/2410.12722)**，该基准包含 1000 多个医学 VQA 问题，涵盖巴西、以色列、日本、西班牙等四个国家的语言，以及它们的英文翻译 🔥🔥🔥
+
+## 🏗️ 快速开始 <a id="quickstart"></a>
+
+请参阅[**快速开始**](/docs/zh-CN/Quickstart.md)获取入门指南。
 
 ## 📊 评测结果，支持的数据集和模型 <a id="data-model-results"></a>
+
 ### 评测结果
 
-[**OpenVLM Leaderboard**](https://huggingface.co/spaces/opencompass/open_vlm_leaderboard): [下载全部细粒度测试结果](http://opencompass.openxlab.space/assets/OpenVLM.json)。
+**[OpenVLM Leaderboard](https://huggingface.co/spaces/opencompass/open_vlm_leaderboard)**: **[下载全部细粒度测试结果](http://opencompass.openxlab.space/assets/OpenVLM.json)**.
 
-### 支持的图文多模态评测集
+请查看[**VLMEvalKit Features**](https://aicarrier.feishu.cn/wiki/Qp7wwSzQ9iK1Y6kNUJVcr6zTnPe?table=tblsdEpLieDoCxtb)中的 **Supported Benchmarks** 标签，以查看所有支持的图像和视频基准（70+）。
 
-- 默认情况下，我们在 [**OpenVLM Leaderboard**](https://huggingface.co/spaces/opencompass/open_vlm_leaderboard) 提供全部测试结果
-- 使用的缩写：`MCQ`: 单项选择题; `Y/N`: 正误判断题; `MTT`: 多轮对话评测; `MTI`: 多图输入评测
-
-| 数据集                                                      | 数据集名称 (用于 run.py)                  | 任务类型 | 数据集                                                       | 数据集名称 (用于 run.py) | 任务类型 |
-| ------------------------------------------------------------ | ------------------------------------------------------ | --------- | --------- | --------- | --------- |
-| [**MMBench Series**](https://github.com/open-compass/mmbench/): <br>MMBench, MMBench-CN, CCBench | MMBench\_DEV\_[EN/CN] <br>MMBench\_TEST\_[EN/CN] <br>MMBench\_DEV\_[EN/CN]\_V11 <br>MMBench\_TEST\_[EN/CN]\_V11 <br>CCBench | MCQ | [**MMStar**](https://github.com/MMStar-Benchmark/MMStar) | MMStar | MCQ |
-| [**MME**](https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models/tree/Evaluation) | MME | Y/N                                       | [**SEEDBench Series**](https://github.com/AILab-CVC/SEED-Bench) | SEEDBench_IMG <br>SEEDBench2 <br>SEEDBench2_Plus | MCQ      |
-| [**MM-Vet**](https://github.com/yuweihao/MM-Vet)             | MMVet  | VQA                                              | [**MMMU**](https://mmmu-benchmark.github.io)  | MMMU_DEV_VAL/MMMU_TEST                        | MCQ                                |
-| [**MathVista**](https://mathvista.github.io)                 | MathVista_MINI | VQA                                         | [**ScienceQA_IMG**](https://scienceqa.github.io) | ScienceQA_[VAL/TEST]                     | MCQ                        |
-| [**COCO Caption**](https://cocodataset.org)                  | COCO_VAL | Caption                                              | [**HallusionBench**](https://github.com/tianyi-lab/HallusionBench) | HallusionBench                                | Y/N                             |
-| [**OCRVQA**](https://ocr-vqa.github.io)*                     | OCRVQA_[TESTCORE/TEST] | VQA                                 | [**TextVQA**](https://textvqa.org)* | TextVQA_VAL                      | VQA                              |
-| [**ChartQA**](https://github.com/vis-nlp/ChartQA)*           | ChartQA_TEST | VQA                                          | [**AI2D**](https://allenai.org/data/diagrams) | AI2D_[TEST/TEST_NO_MASK]                                 | MCQ                         |
-| [**LLaVABench**](https://huggingface.co/datasets/liuhaotian/llava-bench-in-the-wild) | LLaVABench | VQA                                            | [**DocVQA**](https://www.docvqa.org)+       | DocVQA_[VAL/TEST]                           | VQA                                         |
-| [**InfoVQA**](https://www.docvqa.org/datasets/infographicvqa)+ | InfoVQA_[VAL/TEST] | VQA | [**OCRBench**](https://github.com/Yuliang-Liu/MultimodalOCR) | OCRBench | VQA |
-| [**RealWorldQA**](https://x.ai/blog/grok-1.5v)            | RealWorldQA | MCQ                                          | [**POPE**](https://github.com/AoiDragon/POPE) | POPE                                           | Y/N                                            |
-| [**Core-MM**](https://github.com/core-mm/core-mm)-          | CORE_MM | VQA                                               | [**MMT-Bench**](https://mmt-bench.github.io)                 | MMT-Bench\_[VAL/ALL]<br/>MMT-Bench\_[VAL/ALL]_MI | MCQ (MTI) |
-| [**MLLMGuard**](https://github.com/Carol-gutianle/MLLMGuard) - | MLLMGuard_DS | VQA | [**AesBench**](https://github.com/yipoh/AesBench) | AesBench_[VAL/TEST] | MCQ |
-| [**VCR-wiki**](https://huggingface.co/vcr-org/) + | VCR\_[EN/ZH]\_[EASY/HARD]_[ALL/500/100] | VQA | [**MMLongBench-Doc**](https://mayubo2333.github.io/MMLongBench-Doc/)+ | MMLongBench_DOC | VQA (MTI) |
-| [**BLINK**](https://zeyofu.github.io/blink/) | BLINK (MTI) | MCQ | [**MathVision**](https://mathvision-cuhk.github.io)+ | MathVision<br>MathVision_MINI | VQA |
-| [**MT-VQA**](https://github.com/bytedance/MTVQA)+ | MTVQA_TEST | VQA | [**MMDU**](https://liuziyu77.github.io/MMDU/)+ | MMDU | VQA (MTT, MTI) |
-| [**Q-Bench1**](https://github.com/Q-Future/Q-Bench)+ | Q-Bench1_[VAL/TEST] | MCQ | [**A-Bench**](https://github.com/Q-Future/A-Bench)+ | A-Bench_[VAL/TEST] | MCQ |
-| [**DUDE**](https://arxiv.org/abs/2305.08455)+ | DUDE | VQA (MTI) | [**SlideVQA**](https://arxiv.org/abs/2301.04883)+ | SLIDEVQA<br>SLIDEVQA_MINI | VQA (MTI) |
-| [**TaskMeAnything ImageQA Random**](https://huggingface.co/datasets/weikaih/TaskMeAnything-v1-imageqa-random)+ | TaskMeAnything_v1_imageqa_random | MCQ  | [**MMMB and Multilingual MMBench**](https://sun-hailong.github.io/projects/Parrot/) | MMMB\_[ar/cn/en/pt/ru/tr]<br>MMBench_dev_[ar/cn/en/pt/ru/tr]<br>MMMB<br/>MTL_MMBench_DEV<br/>PS: MMMB & MTL_MMBench_DEV <br/>are **all-in-one** names for 6 langs | MCQ  |
-
-**\*** 我们只提供了部分模型上的测试结果，剩余模型无法在 zero-shot 设定下测试出合理的精度
-
-**\+** 我们尚未提供这个评测集的测试结果
-
-**\-** VLMEvalKit 仅支持这个评测集的推理，无法输出最终精度
-
-如果您设置了 API KEY，VLMEvalKit 将使用一个 **LLM** 从输出中提取答案进行匹配判断，否则它将使用**精确匹配**模式 (直接在输出字符串中查找“yes”，“no”，“A”，“B”，“C”等)。**精确匹配只能应用于是或否任务和多选择任务**
-
-### 支持的视频多模态评测集
-
-| Dataset                                              | Dataset Names (for run.py) | Task | Dataset                                       | Dataset Names (for run.py) | Task |
-| ---------------------------------------------------- | -------------------------- | ---- | --------------------------------------------- | -------------------------- | ---- |
-| [**MMBench-Video**](https://mmbench-video.github.io) | MMBench-Video              | VQA  | [**Video-MME**](https://video-mme.github.io/) | Video-MME                  | MCQ  |
-| [**MVBench**](https://github.com/OpenGVLab/Ask-Anything/blob/main/video_chat2/MVBENCH.md)| MVBench/MVBench_MP4              | MCQ  |       |                |  |
-
-### 支持的模型
-**API 模型**
-
-| [**GPT-4v (20231106, 20240409)**](https://platform.openai.com/docs/guides/vision) 🎞️🚅 | [**GPT-4o**](https://openai.com/index/hello-gpt-4o/) 🎞️🚅      | [**Gemini-1.0-Pro**](https://platform.openai.com/docs/guides/vision) 🎞️🚅 | [**Gemini-1.5-Pro**](https://platform.openai.com/docs/guides/vision) 🎞️🚅 | [**Step-1V**](https://www.stepfun.com/#step1v) 🎞️🚅 |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
-| [**Reka-[Edge / Flash / Core]**](https://www.reka.ai)🚅       | [**Qwen-VL-[Plus / Max]**](https://huggingface.co/spaces/Qwen/Qwen-VL-Max) 🎞️🚅 | [**Claude3-[Haiku / Sonnet / Opus]**](https://www.anthropic.com/news/claude-3-family) 🎞️🚅 | [**GLM-4v**](https://open.bigmodel.cn/dev/howuse/glm4v) 🚅    | [**CongRong**](https://mllm.cloudwalk.com/web) 🎞️🚅 |
-| [**Claude3.5-Sonnet**](https://www.anthropic.com/news/claude-3-5-sonnet) 🎞️🚅 | [**GPT-4o-Mini**](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/) 🎞️🚅 | [**Yi-Vision**](https://platform.lingyiwanwu.com)🎞️🚅          | [**Hunyuan-Vision**](https://cloud.tencent.com/document/product/1729)🎞️🚅 |                                                   |
-
-**基于 PyTorch / HF 的开源模型**
-
-| [**IDEFICS-[9B/80B/v2-8B/v3-8B]-Instruct**](https://huggingface.co/HuggingFaceM4/idefics-9b-instruct)🚅🎞️  | [**InstructBLIP-[7B/13B]**](https://github.com/salesforce/LAVIS/blob/main/projects/instructblip/README.md) | [**LLaVA-[v1-7B/v1.5-7B/v1.5-13B]**](https://github.com/haotian-liu/LLaVA) | [**MiniGPT-4-[v1-7B/v1-13B/v2-7B]**](https://github.com/Vision-CAIR/MiniGPT-4) |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [**mPLUG-Owl2**](https://github.com/X-PLUG/mPLUG-Owl/tree/main/mPLUG-Owl2)🎞️ | [**OpenFlamingo-v2**](https://github.com/mlfoundations/open_flamingo)🎞️ | [**PandaGPT-13B**](https://github.com/yxuansu/PandaGPT)      | [**Qwen-VL**](https://huggingface.co/Qwen/Qwen-VL)🚅🎞️ , [**Qwen-VL-Chat**](https://huggingface.co/Qwen/Qwen-VL-Chat)🚅🎞️ |
-| [**VisualGLM-6B**](https://huggingface.co/THUDM/visualglm-6b)🚅 | [**InternLM-XComposer-[1/2]**](https://huggingface.co/internlm/internlm-xcomposer-7b)🚅 | [**ShareGPT4V-[7B/13B]**](https://sharegpt4v.github.io)🚅     | [**TransCore-M**](https://github.com/PCIResearch/TransCore-M) |
-| [**LLaVA (XTuner)**](https://huggingface.co/xtuner/llava-internlm-7b)🚅 | [**CogVLM-[Chat/Llama3]**](https://huggingface.co/THUDM/cogvlm-chat-hf)🚅 | [**ShareCaptioner**](https://huggingface.co/spaces/Lin-Chen/Share-Captioner)🚅 | [**CogVLM-Grounding-Generalist**](https://huggingface.co/THUDM/cogvlm-grounding-generalist-hf)🚅 |
-| [**Monkey**](https://github.com/Yuliang-Liu/Monkey)🚅, [**Monkey-Chat**](https://github.com/Yuliang-Liu/Monkey)🚅 | [**EMU2-Chat**](https://github.com/baaivision/Emu)🚅🎞️         | [**Yi-VL-[6B/34B]**](https://huggingface.co/01-ai/Yi-VL-6B)  | [**MMAlaya**](https://huggingface.co/DataCanvas/MMAlaya)🚅    |
-| [**InternLM-XComposer-2.5**](https://github.com/InternLM/InternLM-XComposer)🚅🎞️ | [**MiniCPM-[V1/V2/V2.5/V2.6]**](https://github.com/OpenBMB/MiniCPM-V)🚅🎞️ | [**OmniLMM-12B**](https://huggingface.co/openbmb/OmniLMM-12B) | [**InternVL-Chat-[V1-1/V1-2/V1-5/V2]**](https://github.com/OpenGVLab/InternVL)🚅🎞️, <br>[**Mini-InternVL-Chat-[2B/4B]-V1-5**](https://github.com/OpenGVLab/InternVL)🚅🎞️ |
-| [**DeepSeek-VL**](https://github.com/deepseek-ai/DeepSeek-VL/tree/main)🎞️ | [**LLaVA-NeXT**](https://llava-vl.github.io/blog/2024-01-30-llava-next/)🚅🎞️ | [**Bunny-Llama3**](https://huggingface.co/BAAI/Bunny-v1_1-Llama-3-8B-V)🚅 | [**XVERSE-V-13B**](https://github.com/xverse-ai/XVERSE-V-13B/blob/main/vxverse/models/vxverse.py) |
-| [**PaliGemma-3B**](https://huggingface.co/google/paligemma-3b-pt-448) 🚅 | [**360VL-70B**](https://huggingface.co/qihoo360/360VL-70B) 🚅 | [**Phi-3-Vision**](https://huggingface.co/microsoft/Phi-3-vision-128k-instruct)/[**Phi-3.5-Vision**](https://huggingface.co/microsoft/Phi-3.5-vision-instruct)🚅 | [**WeMM**](https://github.com/scenarios/WeMM)🚅               |
-| [**GLM-4v-9B**](https://huggingface.co/THUDM/glm-4v-9b) 🚅    | [**Cambrian-[8B/13B/34B]**](https://cambrian-mllm.github.io/) | [**LLaVA-Next-[Qwen-32B]**](https://huggingface.co/lmms-lab/llava-next-qwen-32b) 🎞️ | [**Chameleon-[7B/30B]**](https://huggingface.co/facebook/chameleon-7b)🚅🎞️ |
-| [**Video-LLaVA-7B-[HF]**](https://github.com/PKU-YuanGroup/Video-LLaVA) 🎬 | [**VILA1.5-[3B/8B/13B/40B]**](https://github.com/NVlabs/VILA/)🎞️ | [**Ovis1.5-[Llama3-8B/Gemma2-9B]**](https://github.com/AIDC-AI/Ovis) 🚅🎞️ | [**Mantis-8B-[siglip-llama3/clip-llama3/Idefics2/Fuyu]**](https://huggingface.co/TIGER-Lab/Mantis-8B-Idefics2) 🎞️ |
-| [**Llama-3-MixSenseV1_1**](https://huggingface.co/Zero-Vision/Llama-3-MixSenseV1_1)🚅 | [**Parrot-7B**](https://github.com/AIDC-AI/Parrot) 🚅  | [**OmChat-v2.0-13B-sinlge-beta**](https://huggingface.co/omlab/omchat-v2.0-13B-single-beta_hf)  🚅  | [**Video-ChatGPT**](https://github.com/mbzuai-oryx/Video-ChatGPT) 🎬    |
-| [**Chat-UniVi**](https://github.com/PKU-YuanGroup/Chat-UniVi) 🎬 | [**LLaMA-VID-7B**](https://github.com/dvlab-research/LLaMA-VID) 🎬 | [**VideoChat2-HD**](https://huggingface.co/OpenGVLab/VideoChat2_HD_stage4_Mistral_7B) 🎬 | [**PLLaVA-[7B/13B/34B]**](https://huggingface.co/ermu2001/pllava-7b) 🎬 |
-
-🎞️ 表示支持多图片输入。
-
-🚅 表示模型可以被直接使用，不需任何额外的配置。
-
-🎬 表示支持视频输入。
+请查看[**VLMEvalKit Features**](https://aicarrier.feishu.cn/wiki/Qp7wwSzQ9iK1Y6kNUJVcr6zTnPe?table=tblsdEpLieDoCxtb)中的 **Supported LMMs** 标签，以查看所有支持的 LMMs，包括商业 API、开源模型等（200+）。
 
 ### 其他
 
@@ -121,6 +59,7 @@
 - **请用** `transformers==4.33.0` **来运行**: `Qwen series`, `Monkey series`, `InternLM-XComposer Series`, `mPLUG-Owl2`, `OpenFlamingo v2`, `IDEFICS series`, `VisualGLM`, `MMAlaya`, `ShareCaptioner`, `MiniGPT-4 series`, `InstructBLIP series`, `PandaGPT`, `VXVERSE`.
 - **请用** `transformers==4.37.0 ` **来运行**: `LLaVA series`, `ShareGPT4V series`, `TransCore-M`, `LLaVA (XTuner)`, `CogVLM Series`, `EMU2 Series`, `Yi-VL Series`, `MiniCPM-[V1/V2]`, `OmniLMM-12B`, `DeepSeek-VL series`, `InternVL series`, `Cambrian Series`, `VILA Series`, `Llama-3-MixSenseV1_1`, `Parrot-7B`, `PLLaVA Series`.
 - **请用** `transformers==4.40.0 ` **来运行**: `IDEFICS2`, `Bunny-Llama3`, `MiniCPM-Llama3-V2.5`, `360VL-70B`, `Phi-3-Vision`, `WeMM`.
+- **请用** `transformers==4.42.0 ` **来运行**: `AKI`.
 - **请用** `transformers==latest` **来运行**: `LLaVA-Next series`, `PaliGemma-3B`, `Chameleon series`, `Video-LLaVA-7B-HF`, `Ovis series`, `Mantis series`, `MiniCPM-V2.6`, `OmChat-v2.0-13B-sinlge-beta`, `Idefics-3`, `GLM-4v-9B`, `VideoChat2-HD`.
 
 **如何测试一个 VLM 是否可以正常运行:**
@@ -135,10 +74,6 @@ print(ret)  # 这张图片上有一个带叶子的红苹果
 ret = model.generate(['assets/apple.jpg', 'assets/apple.jpg', 'How many apples are there in the provided images? '])
 print(ret)  # 提供的图片中有两个苹果
 ```
-
-## 🏗️ 快速开始 <a id="quickstart"></a>
-
-请参阅[**快速开始**](/docs/zh-CN/get_started/Quickstart.md)获取入门指南。
 
 ## 🛠️ 开发指南 <a id="development"></a>
 

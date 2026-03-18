@@ -2,3 +2,6 @@
 weights/
 output/
 log
+
+third/**
+vlmeval/**
