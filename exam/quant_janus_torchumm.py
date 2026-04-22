@@ -19,7 +19,6 @@ from loguru import logger
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _MQUANT_ROOT = Path(__file__).resolve().parents[1]
 _TORCHUMM_SRC = _REPO_ROOT / "TorchUMM" / "src"
-_DEFAULT_JANUS_ROOT = _TORCHUMM_SRC / "umm" / "backbones" / "janus_pro" / "Janus"
 
 
 def _prepend_sys_path(path: Path) -> None:
@@ -28,12 +27,16 @@ def _prepend_sys_path(path: Path) -> None:
         sys.path.insert(0, path_str)
 
 
-for _path in (_DEFAULT_JANUS_ROOT, _TORCHUMM_SRC, _MQUANT_ROOT):
+for _path in (_TORCHUMM_SRC, _MQUANT_ROOT):
     _prepend_sys_path(_path)
 
-from fake_quant import gptq, hadamard_utils, quant_utils, utils
+from fake_quant import hadamard_utils, quant_utils, utils
+from fake_quant.gptq.janus_gptq_torchumm import janus_rtn_gptq_fwrd_torchumm
 from fake_quant.janus_rotation import fuse_janus_layer_norms, rotate_janus_model
-from vlmeval.config import supported_VLM
+from janus_torchumm_runtime import (
+    build_torchumm_calibration_dataset,
+    load_torchumm_janus_runtime,
+)
 
 torch.set_grad_enabled(False)
 
@@ -63,13 +66,13 @@ def janus_add_act_quant(model: Any, args: argparse.Namespace) -> None:
 
 
 def calib_janus(model: Any, args: argparse.Namespace, dataset: Any, calib_num: int) -> None:
-    import math
-
     from tqdm import tqdm
 
-    lt = len(dataset.data)
-    step = math.ceil(lt / calib_num)
-    print(f"Calibrating Janus with {calib_num} samples (step={step})...")
+    samples = list(dataset.iter_samples())
+    if not samples:
+        raise RuntimeError("TorchUMM calibration dataset is empty.")
+    selected = samples[:max(1, min(calib_num, len(samples)))]
+    print(f"Calibrating Janus with {len(selected)} TorchUMM samples...")
 
     qlayers = quant_utils.find_qlayers(
         model.model.language_model.model, layers=[quant_utils.ActQuantWrapper]
@@ -83,8 +86,8 @@ def calib_janus(model: Any, args: argparse.Namespace, dataset: Any, calib_num: i
     max_new_tokens = model.kwargs.get("max_new_tokens", 512)
     model.kwargs["max_new_tokens"] = 20
 
-    for i in tqdm(range(0, lt, step), desc="Calibrating"):
-        if i + step >= lt:
+    for i, sample in enumerate(tqdm(selected, desc="Calibrating")):
+        if i == len(selected) - 1:
             print("Last calibration step - computing quantization params")
             for name in qlayers:
                 if any(p_name in name for p_name in args.skip_names):
@@ -92,13 +95,8 @@ def calib_janus(model: Any, args: argparse.Namespace, dataset: Any, calib_num: i
                 qlayers[name].quantizer.last_calibrate = True
             model.kwargs["max_new_tokens"] = 1
 
-        if hasattr(model, "use_custom_prompt") and model.use_custom_prompt(args.dataset_name):
-            struct = model.build_prompt(dataset.data.iloc[i], dataset=args.dataset_name)
-        else:
-            struct = dataset.build_prompt(dataset.data.iloc[i])
-
         try:
-            model.generate(message=struct, dataset=args.dataset_name)
+            model.generate(message=sample, dataset=None)
         except Exception as exc:
             print(f"Warning: Calibration sample {i} failed: {exc}")
             continue
@@ -133,7 +131,7 @@ def _load_canonical_cfg(args: argparse.Namespace, model_name: str) -> dict[str, 
     if not isinstance(backbone_cfg, dict):
         raise ValueError("`inference.backbone_cfg` must be a mapping in the MMMU config.")
 
-    required_keys = ("model_path", "janus_root", "seed", "torch_dtype", "understanding_cfg")
+    required_keys = ("model_path", "seed", "torch_dtype", "understanding_cfg")
     missing = [key for key in required_keys if key not in backbone_cfg]
     if missing:
         raise ValueError(f"`inference.backbone_cfg` missing required keys: {missing}")
@@ -187,10 +185,8 @@ def main(args: argparse.Namespace) -> int:
 
     canonical_cfg = _load_canonical_cfg(args, model_name)
 
-    print(f"Loading {model_name}...")
-    model = supported_VLM[model_name](
-        model_path=Model_Setting[model_name], verbose=args.verbose
-    )
+    print(f"Loading {model_name} through TorchUMM...")
+    model = load_torchumm_janus_runtime(canonical_cfg)
 
     utils.seed_everything(args.seed)
 
@@ -254,16 +250,14 @@ def main(args: argparse.Namespace) -> int:
 
         if args.load_gptq:
             print(f"Loading GPTQ model from: {args.load_gptq}")
-            model.model = torch.load(args.load_gptq)
+            model.set_model(torch.load(args.load_gptq))
         else:
-            from vlmeval.dataset import build_dataset
-
-            dataset = build_dataset(args.dataset_name)
-            model.set_dump_image(dataset.dump_image)
-
-            quantizers = gptq.janus_rtn_gptq_fwrd_plus(
-                model, dataset, utils.DEV, args.dataset_name, args
+            dataset = build_torchumm_calibration_dataset(
+                args.mmmu_config,
+                max_samples=max(args.nsamples, args.calib_num),
             )
+
+            quantizers = janus_rtn_gptq_fwrd_torchumm(model, dataset, utils.DEV, args)
 
             if args.dump_gptq:
                 torch.save(model.model, args.dump_gptq)
@@ -295,10 +289,10 @@ def main(args: argparse.Namespace) -> int:
                     observer_type="minmax",
                 )
 
-    from vlmeval.dataset import build_dataset
-
-    dataset = build_dataset(args.dataset_name)
-    model.set_dump_image(dataset.dump_image)
+    dataset = build_torchumm_calibration_dataset(
+        args.mmmu_config,
+        max_samples=max(args.nsamples, args.calib_num),
+    )
 
     if args.llm_static:
         calib_janus(model, args, dataset, args.calib_num)
@@ -311,7 +305,7 @@ def main(args: argparse.Namespace) -> int:
     raw_model = model.model
     if torch.cuda.is_available():
         raw_model = raw_model.cuda().eval()
-        model.model = raw_model
+        model.set_model(raw_model)
 
     from evaluation.torchumm_backbones import (
         MQuantJanusProBackbone,
@@ -408,7 +402,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval_num", type=int, default=32,
                         help="Number of evaluation samples")
     parser.add_argument("--dataset_name", type=str, default="TextVQA_VAL",
-                        help="Dataset name for calibration")
+                        help="Deprecated; calibration follows the TorchUMM eval config")
 
     parser.add_argument("--online_llm_hadamard", action="store_true", default=False,
                         help="Enable online Hadamard rotation for LLM")
