@@ -1,47 +1,33 @@
-import os
-import string
-import time
-from typing import Optional
-import pandas as pd
-import requests
-from vlmeval.smp import (
-    LMUDataRoot,
-    osp,
-    read_ok,
-    decode_base64_to_image_file,
-    toliststr,
-    listinstr,
-    cn_string,
-)
+from vlmeval.smp import *
 from vlmeval.api.base import BaseAPI
 from vlmeval.dataset import img_root_map
 from vlmeval.dataset import DATASET_TYPE
 
 
 class SenseChatVisionWrapper(BaseAPI):
+
     is_api: bool = True
 
     def __init__(
         self,
-        base_url: str = "https://api.sensenova.cn/v1/llm/chat-completions",
-        api_key: str = None,
-        model: str = "SenseNova-V6-5-Pro",
+        model: str = "SenseChat-5-Vision",
         retry: int = 5,
         wait: int = 5,
+        ak: str = None,
+        sk: str = None,
         verbose: bool = True,
         system_prompt: str = None,
-        max_tokens: int = 16384,
+        max_tokens: int = 1024,
+        proxy: str = None,
         **kwargs,
     ):
-        self.base_url = base_url
+
         self.model = model
         self.fail_msg = "Failed to obtain answer via API. "
-        self.api_key = os.getenv("SENSENOVA_API_KEY", api_key)
-        assert self.api_key is not None, (
-            "Please set the `SENSENOVA_API_KEY` environment variable or pass `api_key` in the config.json."
-        )
+        self.ak = os.environ.get("SENSECHAT_AK", None) if ak is None else ak
+        self.sk = os.environ.get("SENSECHAT_SK", None) if sk is None else sk
+        assert self.ak is not None and self.sk is not None
         self.max_new_tokens = max_tokens
-        self.thinking = False
         super().__init__(
             wait=wait,
             retry=retry,
@@ -62,7 +48,11 @@ class SenseChatVisionWrapper(BaseAPI):
         """
         ROOT = LMUDataRoot()
         assert isinstance(dataset, str)
-        img_root = osp.join(ROOT, "images", img_root_map(dataset))
+        img_root = osp.join(
+            ROOT,
+            "images",
+            img_root_map[dataset] if dataset in img_root_map else dataset,
+        )
         os.makedirs(img_root, exist_ok=True)
         if "image" in line:
             if isinstance(line["image"], list):
@@ -91,8 +81,21 @@ class SenseChatVisionWrapper(BaseAPI):
             encoded_string = base64.b64encode(image_file.read())
             return encoded_string.decode("utf-8")
 
-    def use_custom_prompt(self, *args, **kwargs):
-        """Check if the prompt is customized."""
+    def encode_jwt_token(self, ak, sk):
+        import jwt
+
+        headers = {"alg": "HS256", "typ": "JWT"}
+        payload = {
+            "iss": ak,
+            "exp": int(time.time())
+            + 1800,  # 填写您期望的有效时间，此处示例代表当前时间+30分钟
+            "nbf": int(time.time())
+            - 5,  # 填写您期望的生效时间，此处示例代表当前时间-5秒
+        }
+        token = jwt.encode(payload, sk, headers=headers)
+        return token
+
+    def use_custom_prompt(self, dataset):
         return True
 
     def build_multi_choice_prompt(self, line, dataset=None):
@@ -125,23 +128,6 @@ class SenseChatVisionWrapper(BaseAPI):
 
         return prompt
 
-    def build_mcq_cot_prompt(self, line, prompt):
-        question = line["question"]
-        options = {
-            cand: line[cand]
-            for cand in string.ascii_uppercase
-            if cand in line and not pd.isna(line[cand])
-        }
-        for key, item in options.items():
-            question += f'\n{key}. {item}'
-        prompt = {
-            'multiple-choice': "You are an expert in {}. Please solve the university-level {} examination question, which includes interleaved images and text. Answer the preceding multiple choice question. The last line of your response should follow this format: 'Answer: \\boxed LETTER', where LETTER is one of the options. If you are uncertain or the problem is too complex, make a reasoned guess based on the information provided. Avoid repeating steps indefinitely—provide your best guess even if unsure. Think step by step logically, considering all relevant information before answering.",  # noqa: E501
-            'open': 'You are an expert in {}. Please solve the university-level {} examination question, which includes interleaved images and text. Your output should be divided into two parts: First, reason about the correct answer. Then write the answer in the following format where X is only the answer and nothing else: "ANSWER: X"'  # noqa: E501
-        }
-        subject = '_'.join(line['id'].split('_')[1:-1])
-        prompt = prompt[line['question_type']].format(subject, subject) + '\n' + question
-        return prompt
-
     def build_prompt(self, line, dataset=None):
         assert self.use_custom_prompt(dataset)
         assert dataset is None or isinstance(dataset, str)
@@ -157,15 +143,15 @@ class SenseChatVisionWrapper(BaseAPI):
                 question
                 + " Please answer yes or no. Answer the question using a single word or phrase."
             )
-        elif dataset is not None and DATASET_TYPE(dataset) == "MCQ":
+        elif (
+            dataset is not None
+            and DATASET_TYPE(dataset) == "MCQ"
+            and "MMMU" not in dataset
+        ):
             prompt = self.build_multi_choice_prompt(line, dataset)
-            if "MMMU" in dataset:
-                prompt = self.build_mcq_cot_prompt(line, prompt)
-                self.thinking = True
         elif dataset is not None and DATASET_TYPE(dataset) == "VQA":
             if "MathVista" in dataset:
                 prompt = line["question"]
-                self.thinking = True
             elif listinstr(["LLaVABench"], dataset):
                 question = line["question"]
                 prompt = question + "\nAnswer this question in detail."
@@ -174,9 +160,25 @@ class SenseChatVisionWrapper(BaseAPI):
             else:
                 question = line["question"]
                 prompt = (
-                    question
-                    + "\nPlease reason step by step, and put your final answer within \\boxed{}."
+                    question + "\nAnswer the question using a single word or phrase."
                 )
+        elif dataset is not None and "MMMU" in dataset:
+            question = line["question"]
+            options = {
+                cand: line[cand]
+                for cand in string.ascii_uppercase
+                if cand in line and not pd.isna(line[cand])
+            }
+            for key, item in options.items():
+                question += f"\n{key}. {item}"
+            prompt = {
+                "multiple-choice": 'You are an expert in {}. Please solve the university-level {} examination question, which includes interleaved images and text. Your output should be divided into two parts: First, reason about the correct answer. Then write the answer in the following format where X is exactly one of the choices given by the problem: "ANSWER: X". If you are uncertain of the correct answer, guess the most likely one.',  # noqa: E501
+                "open": 'You are an expert in {}. Please solve the university-level {} examination question, which includes interleaved images and text. Your output should be divided into two parts: First, reason about the correct answer. Then write the answer in the following format where X is only the answer and nothing else: "ANSWER: X"',  # noqa: E501
+            }
+            subject = "_".join(line["id"].split("_")[1:-1])
+            prompt = (
+                prompt[line["question_type"]].format(subject, subject) + "\n" + question
+            )
         else:
             prompt = line["question"]
 
@@ -194,45 +196,43 @@ class SenseChatVisionWrapper(BaseAPI):
             image = [x["value"] for x in message if x["type"] == "image"]
         return prompt, image
 
-    def set_max_num(self, dataset: Optional[str] = None) -> None:
-        """Set the max_num based on the dataset."""
-        if dataset is not None and listinstr(
-            [
-                "ChartQA_TEST",
-                "MMMU_DEV_VAL",
-                "MMMU_TEST",
-                "MME-RealWorld",
-                "VCR_EN",
-                "VCR_ZH",
-                "OCRVQA",
-            ],
-            dataset,
-        ):
-            self.max_num = 12
-        elif dataset is not None and listinstr(
-            ["DocVQA_VAL", "DocVQA_TEST", "DUDE", "MMLongBench_DOC", "SLIDEVQA"],
-            dataset,
-        ):
-            self.max_num = 18
-        elif dataset is not None and listinstr(
-            ["InfoVQA_VAL", "InfoVQA_TEST", "OCRBench", "HRBench4K", "HRBench8K"],
-            dataset,
-        ):
-            self.max_num = 24
-        else:
-            self.max_num = 6
-
     def generate_inner(self, inputs, **kwargs) -> str:
         assert isinstance(inputs, str) or isinstance(inputs, list)
         inputs = [inputs] if isinstance(inputs, str) else inputs
         dataset = kwargs.get("dataset", None)
 
-        self.set_max_num(dataset=dataset)
+        if dataset is not None and listinstr(["ChartQA_TEST"], dataset):
+            self.max_num = 12
+        elif dataset is not None and listinstr(["DocVQA_VAL", "DocVQA_TEST"], dataset):
+            self.max_num = 18
+        elif dataset is not None and listinstr(
+            ["InfoVQA_VAL", "InfoVQA_TEST", "OCRBench"], dataset
+        ):
+            self.max_num = 24
+        else:
+            self.max_num = 6
+
+        if dataset is None:
+            pass
+        elif listinstr(["AI2D_TEST"], dataset):
+            self.max_new_tokens = 10
+        elif "MMMU" in dataset:
+            self.max_new_tokens = 1024
+        elif "MMBench" in dataset:
+            self.max_new_tokens = 100
 
         prompt, image = self.message_to_promptimg(message=inputs, dataset=dataset)
+
+        url = "https://api.sensenova.cn/v1/llm/chat-completions"
+        api_secret_key = self.encode_jwt_token(self.ak, self.sk)
+
         content = [
             {
                 "image_base64": self.image_to_base64(item),
+                "image_file_id": "",
+                "image_url": "",
+                "text": "",
+                "text": "",
                 "type": "image_base64",
             }
             for item in image
@@ -240,40 +240,40 @@ class SenseChatVisionWrapper(BaseAPI):
 
         content.append(
             {
+                "image_base64": "",
+                "image_file_id": "",
+                "image_url": "",
                 "text": prompt,
                 "type": "text",
             }
         )
 
         message = [{"content": content, "role": "user"}]
+
         data = {
             "messages": message,
             "max_new_tokens": self.max_new_tokens,
             "model": self.model,
             "stream": False,
-            "image_split_count": self.max_num,
-            "thinking": {
-                "enabled": self.thinking,
-            }
         }
-
         headers = {
             "Content-type": "application/json",
-            "Authorization": self.api_key,
+            "Authorization": "Bearer " + api_secret_key,
         }
 
         response = requests.post(
-            self.base_url,
+            url,
             headers=headers,
             json=data,
         )
-        request_id = response.headers.get("x-request-id", "")
-        self.logger.info(f"Request-id: {request_id}")
+        request_id = response.headers["x-request-id"]
 
         time.sleep(1)
         try:
             assert response.status_code == 200
             response = response.json()["data"]["choices"][0]["message"].strip()
+            if dataset is not None and "MMMU" in dataset:
+                response = response.split("ANSWER: ")[-1].strip()
             if self.verbose:
                 self.logger.info(f"inputs: {inputs}\nanswer: {response}")
             return 0, response, "Succeeded! "
@@ -303,5 +303,6 @@ class SenseChatVisionWrapper(BaseAPI):
 
 
 class SenseChatVisionAPI(SenseChatVisionWrapper):
+
     def generate(self, message, dataset=None):
         return super(SenseChatVisionAPI, self).generate(message, dataset=dataset)

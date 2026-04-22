@@ -17,22 +17,29 @@ We always welcome users' PRs (Pull Requests) and Issues to improve VLMEvalKit!
    :maxdepth: 1
    :caption: Start Your First Step
 
-   Quickstart.md
+   get_started/Quickstart.md
+
+
+.. .. _Tutorials:
+.. .. toctree::
+..    :maxdepth: 1
+..    :caption: Tutorials
+
+..    user_guides/framework_overview.md
 
 .. _Advanced Tutorial:
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Tutorial
 
-   Development.md
-   ConfigSystem.md
+   advanced_guides/Development.md
 
-.. _Other Notes:
-.. toctree::
-   :maxdepth: 1
-   :caption: Other Notes
+.. .. _Other Notes:
+.. .. toctree::
+..    :maxdepth: 1
+..    :caption: Other Notes
 
-   Contributors.md
+..    notes/contribution_guide.md
 
 Index and Tables
 ==================

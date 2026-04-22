@@ -1,0 +1,23 @@
+eval:
+  benchmark: mmmu
+
+inference:
+  backbone: janus_pro_quant_mquant
+  backbone_cfg:
+    model_path: deepseek-ai/Janus-Pro-1B
+    janus_root: ${UMM_CODEBASE}/src/umm/backbones/janus_pro/Janus
+    seed: 42
+    torch_dtype: bfloat16
+    understanding_cfg:
+      max_new_tokens: 2048
+      do_sample: false
+      use_cache: true
+
+mmmu:
+  root: MMMU/MMMU
+  cache_dir: data/MMMU
+  datasets: [MMMU_validation]
+  out_dir: output/mmmu/janus_pro_quant_mquant
+  score_output_path: output/mmmu/janus_pro_quant_mquant/summary.json
+  run_calculation: true
+  max_images: 1

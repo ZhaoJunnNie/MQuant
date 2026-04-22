@@ -12,12 +12,12 @@ VLMEvalKit 上手路线
 
 我们始终非常欢迎用户的 PRs 和 Issues 来完善 VLMEvalKit！
 
-.. _快速开始:
+.. _开始你的第一步:
 .. toctree::
    :maxdepth: 1
-   :caption: 快速开始
+   :caption: 开始你的第一步
 
-   Quickstart.md
+   get_started/Quickstart.md
 
 
 .. .. _教程:
@@ -32,8 +32,7 @@ VLMEvalKit 上手路线
    :maxdepth: 1
    :caption: 进阶教程
 
-   Development.md
-   ConfigSystem.md
+   advanced_guides/Development.md
 
 .. .. _其他说明:
 .. .. toctree::
